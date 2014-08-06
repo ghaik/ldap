@@ -45,39 +45,44 @@ func TestFilter(t *testing.T) {
 	}
 }
 
-func TestDecodePresentFilter(t *testing.T) {
-
-	bs := []byte{0x87, 0x06, 0x6d, 0x65, 0x6d, 0x62, 0x65, 0x72} // ~ (member=*)
-
-	p := ber.DecodePacket(bs)
-	f, err := DecompileFilter(p)
-	if err != nil {
-		t.Errorf("--- CAN'T DECODE & DECOMPILE FILTER")
-		return
-	}
-	if f != "(member=*)" {
-		t.Errorf("expected (member=*), got %s", f)
-	}
-
+var bers = []struct {
+	human string
+	ber   []byte
+}{
+	{
+		human: "(member=*)",
+		ber:   []byte{0x87, 0x06, 0x6d, 0x65, 0x6d, 0x62, 0x65, 0x72},
+	},
 }
 
-func TestEncodeDecodePresentFilter(t *testing.T) {
-	f := "(member=*)"
-	p, err := CompileFilter(f)
-	if err != nil {
-		t.Errorf("cant compile filter")
-		return
+func TestDecodeBer(t *testing.T) {
+	for _, b := range bers {
+		p := ber.DecodePacket(b.ber)
+		f, err := DecompileFilter(p)
+		if err != nil {
+			t.Fatalf("Error in DecompilerFilter : %s", err)
+		}
+		if f != b.human {
+			t.Fatalf("Expected (member=*), got %s", f)
+		}
 	}
-	bytes := p.Bytes()
+}
 
-	p2 := ber.DecodePacket(bytes)
-	f2, err := DecompileFilter(p2)
-	if err != nil {
-		t.Errorf("cant decompile filter")
-		return
-	}
-	if f != f2 {
-		t.Errorf("encode/decode changed filter")
+func TestEncodeDecodeBer(t *testing.T) {
+	for _, f := range testFilters {
+		p, err := CompileFilter(f.filterStr)
+		if err != nil {
+			t.Fatalf("Error in CompileFilter : %s", err)
+		}
+		bytes := p.Bytes()
+		p2 := ber.DecodePacket(bytes)
+		f2, err := DecompileFilter(p2)
+		if err != nil {
+			t.Fatalf("Error in DecompileFilter : %s", err)
+		}
+		if f.filterStr != f2 {
+			t.Fatalf("Compile/Encode/Decode/Decompile changed filter.")
+		}
 	}
 }
 
